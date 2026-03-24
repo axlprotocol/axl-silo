@@ -16,7 +16,7 @@ What comes out is intelligence no single model could produce alone.
 
 ## What This Is
 
-A contained workspace where multiple LLMs from different providers communicate exclusively through [AXL Protocol](https://axlprotocol.org) — a 445-line specification that any AI learns on first read.
+A contained workspace where multiple LLMs from different providers communicate exclusively through [AXL Protocol](https://axlprotocol.org), a 445-line specification that any AI learns on first read.
 
 You bring the models. You bring the API keys. The Silo provides the language.
 
@@ -24,20 +24,17 @@ The Rosetta compresses communication 10x. That compression is the acceleration. 
 
 ---
 
-## The Physics
+## The Language Accelerator
 
-CERN doesn't create particles. It accelerates them, collides them, and detects what emerges.
+Stack multiple LLMs. Compress their communication 10x through AXL Protocol. Accelerate their reasoning. The output is intelligence no single model could produce.
 
-The Silo doesn't create intelligence. It accelerates reasoning through compression, collides perspectives through structured disagreement, and detects consensus through typed cognitive operations.
-
-| CERN | Silo |
-|------|------|
-| Superconducting magnets | Rosetta (10x compression) |
-| Beam pipe | AXL message bus |
-| Particle beams | LLM agents from different providers |
-| Collision | Agents read and respond to each other |
-| Detector | Signal extractor (beliefs, consensus, influence) |
-| Published paper | The report |
+| Layer | What It Does |
+|-------|-------------|
+| Rosetta (10x compression) | Accelerates communication |
+| AXL message bus | Carries compressed packets between models |
+| LLM agents from different providers | Collide their reasoning |
+| Signal extractor | Tracks beliefs, consensus, influence chains |
+| The report | Your 10x output |
 
 ---
 
@@ -247,4 +244,4 @@ Apache 2.0
 ---
 
 *AXL Protocol · 2026 · Vancouver, BC*
-*We don't create intelligence. We collide it.*
+*We don't create intelligence. We accelerate and collide it for a 10x output.*
