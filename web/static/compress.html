@@ -3,528 +3,284 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AXL Compress — Fit 10x more into any LLM</title>
-<meta name="description" content="Paste English. Get AXL-compressed output. Use in ChatGPT, Claude, Gemini, Grok. 10x more context. Free.">
+<title>AXL Compress — 10x Your Context Window</title>
+<meta name="description" content="Compress English to AXL Protocol. 10x more context in any LLM. Free.">
+<meta property="og:title" content="AXL Compress — 10x Your Context Window">
+<meta property="og:url" content="https://compress.axlprotocol.org">
+<link rel="icon" href="https://axlprotocol.org/favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg: #030508;
-  --surface: #080c12;
-  --panel: #0c1018;
-  --border: #141c28;
-  --dim: #384860;
-  --text: #8899aa;
-  --bright: #c8d4e0;
-  --white: #eef2f6;
-  --green: #00e87b;
-  --green-dim: rgba(0,232,123,0.06);
-  --green-glow: rgba(0,232,123,0.15);
-  --orange: #ff7733;
-  --orange-dim: rgba(255,119,51,0.06);
-  --gold: #fbbf24;
-}
-* { margin:0; padding:0; box-sizing:border-box; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Space Grotesk', system-ui, sans-serif;
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
-}
-.mono { font-family: 'JetBrains Mono', monospace; }
-
-/* NAV */
-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--border);
-}
-nav .logo {
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 700;
-  font-size: 15px;
-  color: var(--white);
-  text-decoration: none;
-  letter-spacing: 2px;
-}
-nav .logo span { color: var(--green); }
-nav .links {
-  display: flex;
-  gap: 20px;
-  font-size: 13px;
-}
-nav .links a {
-  color: var(--dim);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-nav .links a:hover { color: var(--green); }
-
-/* HERO */
-.hero {
-  text-align: center;
-  padding: 48px 24px 32px;
-}
-.hero h1 {
-  font-size: clamp(28px, 4vw, 42px);
-  font-weight: 700;
-  color: var(--white);
-  margin-bottom: 8px;
-  line-height: 1.2;
-}
-.hero h1 em { font-style: normal; color: var(--green); }
-.hero p {
-  font-size: 15px;
-  color: var(--dim);
-  max-width: 520px;
-  margin: 0 auto;
-  line-height: 1.6;
-}
-
-/* WORKSPACE */
-.workspace {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 24px 48px;
-}
-.panels {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-.panel {
-  background: var(--surface);
-  display: flex;
-  flex-direction: column;
-}
-.panel-header {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.panel-header .label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 3px;
-}
-.panel-header .label.eng { color: var(--orange); }
-.panel-header .label.axl { color: var(--green); }
-.panel-header .token-count {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: var(--dim);
-}
-.panel textarea {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--bright);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  line-height: 1.7;
-  padding: 16px;
-  resize: none;
-  outline: none;
-  min-height: 320px;
-}
-.panel textarea::placeholder { color: var(--dim); }
-.panel.output textarea {
-  color: var(--green);
-  cursor: default;
-}
-
-/* ACTION BAR */
-.action-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-}
-.action-bar .stats {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: var(--dim);
-  display: flex;
-  gap: 20px;
-}
-.action-bar .stats .value { color: var(--green); font-weight: 600; }
-.action-bar .stats .ratio {
-  color: var(--gold);
-  font-weight: 700;
-  font-size: 14px;
-}
-.action-bar .buttons {
-  display: flex;
-  gap: 8px;
-}
-.btn {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  letter-spacing: 1px;
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid var(--border);
-  color: var(--text);
-  background: var(--panel);
-}
-.btn:hover { border-color: var(--green); color: var(--green); }
-.btn.primary {
-  background: var(--green-dim);
-  border-color: var(--green);
-  color: var(--green);
-}
-.btn.primary:hover { background: var(--green-glow); }
-.btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-/* LOADING */
-.loading {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  color: var(--green);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-}
-.loading.active { display: flex; }
-.loading .spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--border);
-  border-top-color: var(--green);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* HOW IT WORKS */
-.how {
-  max-width: 700px;
-  margin: 0 auto;
-  padding: 48px 24px;
-  text-align: center;
-}
-.how h2 {
-  font-size: 20px;
-  color: var(--bright);
-  margin-bottom: 24px;
-}
-.steps {
-  display: flex;
-  gap: 32px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-.step {
-  flex: 1;
-  min-width: 160px;
-}
-.step .num {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--green);
-  margin-bottom: 8px;
-}
-.step .desc {
-  font-size: 13px;
-  color: var(--dim);
-  line-height: 1.5;
-}
-
-/* API KEY */
-.api-section {
-  max-width: 500px;
-  margin: 0 auto 32px;
-  padding: 0 24px;
-}
-.api-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.api-row select {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  color: var(--bright);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  padding: 8px 10px;
-  border-radius: 4px;
-  outline: none;
-}
-.api-row input {
-  flex: 1;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  color: var(--bright);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  padding: 8px 10px;
-  border-radius: 4px;
-  outline: none;
-}
-.api-row input::placeholder { color: var(--dim); }
-.api-note {
-  font-size: 11px;
-  color: var(--dim);
-  margin-top: 6px;
-  text-align: center;
-}
-
-/* FOOTER */
-footer {
-  text-align: center;
-  padding: 32px;
-  font-size: 12px;
-  color: var(--dim);
-  border-top: 1px solid var(--border);
-}
-footer a { color: var(--green); text-decoration: none; }
-
-@media (max-width: 768px) {
-  .panels { grid-template-columns: 1fr; }
-  .action-bar { flex-direction: column; gap: 12px; }
-  .action-bar .stats { flex-wrap: wrap; }
-}
+:root{--bg:#030508;--surface:#080c12;--panel:#0c1018;--border:#141c28;--border-active:#1e2d42;--dim:#384860;--text:#8899aa;--bright:#c8d4e0;--white:#eef2f6;--green:#00e87b;--green-dim:rgba(0,232,123,0.06);--green-glow:rgba(0,232,123,0.15);--orange:#ff7733;--orange-dim:rgba(255,119,51,0.06);--gold:#fbbf24;--red:#ef4444;--cyan:#22d3ee}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',system-ui,sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.mono{font-family:'JetBrains Mono',monospace}
+body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+body::after{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:500px;background:radial-gradient(ellipse,rgba(0,232,123,0.03) 0%,transparent 70%);pointer-events:none;z-index:0}
+nav{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border);backdrop-filter:blur(12px);background:rgba(8,12,18,0.85)}
+nav .logo{display:flex;align-items:center;gap:12px;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;color:var(--white);text-decoration:none;letter-spacing:2px}
+nav .logo .mark{width:24px;height:24px;border-radius:50%;background:conic-gradient(from 180deg,var(--green),var(--cyan),var(--green));animation:ms 10s linear infinite;box-shadow:0 0 15px rgba(0,232,123,0.12)}
+@keyframes ms{to{transform:rotate(360deg)}}
+nav .logo span{color:var(--green)}
+nav .links{display:flex;gap:20px;font-size:13px}
+nav .links a{color:var(--dim);text-decoration:none;transition:color 0.2s}
+nav .links a:hover{color:var(--green)}
+.wizard-overlay{position:fixed;inset:0;z-index:100;background:rgba(3,5,8,0.92);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity 0.4s}
+.wizard-overlay.hidden{opacity:0;pointer-events:none}
+.wizard{background:var(--surface);border:1px solid var(--border);border-radius:12px;max-width:520px;width:90%;overflow:hidden;box-shadow:0 8px 80px rgba(0,0,0,0.6)}
+.wizard-step{display:none;padding:36px 32px}
+.wizard-step.active{display:block}
+.wizard-step .sn{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--dim);margin-bottom:16px}
+.wizard-step h2{font-size:22px;font-weight:700;color:var(--white);margin-bottom:8px;line-height:1.3}
+.wizard-step h2 em{font-style:normal;color:var(--green)}
+.wizard-step p{font-size:14px;color:var(--text);line-height:1.7;margin-bottom:16px}
+.wizard-step .cb{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px 16px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--green);line-height:1.6;margin-bottom:20px;overflow-x:auto}
+.wizard-step .kl{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.wizard-step .kl a{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;text-decoration:none;border:1px solid var(--border);color:var(--bright);transition:all 0.2s}
+.wizard-step .kl a:hover{border-color:var(--green);color:var(--green)}
+.wn{display:flex;justify-content:space-between;align-items:center;padding:16px 32px;border-top:1px solid var(--border);background:var(--panel)}
+.wd{display:flex;gap:6px}
+.wd .d{width:8px;height:8px;border-radius:50%;background:var(--border);transition:background 0.3s}
+.wd .d.a{background:var(--green)}
+.wb{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:1px;padding:10px 24px;border-radius:6px;cursor:pointer;border:1px solid var(--border);color:var(--text);background:var(--panel);transition:all 0.2s}
+.wb:hover{border-color:var(--green);color:var(--green)}
+.wb.p{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+.wb.p:hover{background:var(--green-glow)}
+.wb.sk{background:none;border:none;color:var(--dim);font-size:11px;cursor:pointer;padding:10px 12px}
+.wb.sk:hover{color:var(--text)}
+.hero{position:relative;z-index:1;text-align:center;padding:48px 24px 32px}
+.hero h1{font-size:clamp(28px,4vw,42px);font-weight:700;color:var(--white);margin-bottom:8px;line-height:1.2}
+.hero h1 em{font-style:normal;color:var(--green)}
+.hero p{font-size:15px;color:var(--dim);max-width:520px;margin:0 auto;line-height:1.6}
+.api-section{max-width:500px;margin:0 auto 28px;padding:0 24px;position:relative;z-index:1}
+.api-row{display:flex;gap:8px;align-items:center}
+.api-row select{background:var(--panel);border:1px solid var(--border);color:var(--bright);font-family:'JetBrains Mono',monospace;font-size:12px;padding:10px 12px;border-radius:6px;outline:none;cursor:pointer;transition:border-color 0.2s}
+.api-row select:focus{border-color:var(--green)}
+.api-row input{flex:1;background:var(--panel);border:1px solid var(--border);color:var(--bright);font-family:'JetBrains Mono',monospace;font-size:12px;padding:10px 12px;border-radius:6px;outline:none;transition:border-color 0.2s}
+.api-row input::placeholder{color:var(--dim)}
+.api-row input:focus{border-color:var(--green)}
+.api-row input.err{border-color:var(--red);animation:shake 0.3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.api-note{font-size:11px;color:var(--dim);margin-top:8px;text-align:center}
+.api-note .lk{color:var(--green)}
+.api-help{text-align:center;margin-top:6px}
+.api-help a{font-size:11px;color:var(--dim);text-decoration:none;border-bottom:1px dashed var(--dim);transition:all 0.2s}
+.api-help a:hover{color:var(--green);border-color:var(--green)}
+.workspace{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 24px 20px}
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 4px 48px rgba(0,0,0,0.3)}
+.panel{background:var(--surface);display:flex;flex-direction:column}
+.panel-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.panel-header .label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:3px;font-weight:600}
+.panel-header .label.eng{color:var(--text)}
+.panel-header .label.axl{color:var(--green)}
+.panel-header .tc{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim)}
+.panel textarea{flex:1;background:transparent;border:none;color:var(--bright);font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.7;padding:18px;resize:none;outline:none;min-height:340px}
+.panel textarea::placeholder{color:var(--dim);font-style:italic}
+.panel.output textarea{color:var(--green);cursor:default}
+.panel.output{background:var(--bg)}
+.panel.output.on{box-shadow:inset 0 0 30px rgba(0,232,123,0.02)}
+.mbar{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;overflow:hidden;box-shadow:0 4px 48px rgba(0,0,0,0.2)}
+.mc{padding:14px 18px;background:var(--panel);border-right:1px solid var(--border);text-align:center}
+.mc:last-child{border-right:none}
+.mc .ml{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--dim);margin-bottom:3px;text-transform:uppercase}
+.mc .mv{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--white)}
+.mc .mv.g{color:var(--green)}.mc .mv.go{color:var(--gold)}
+.abar{display:flex;align-items:center;justify-content:center;gap:10px;padding:20px 24px;position:relative;z-index:1}
+.btn{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:1px;padding:11px 24px;border-radius:6px;cursor:pointer;transition:all 0.2s;font-weight:600;border:1px solid var(--border);color:var(--text);background:var(--panel)}
+.btn:hover{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+.btn.pr{background:var(--green-dim);border-color:rgba(0,232,123,0.3);color:var(--green)}
+.btn.pr:hover{background:var(--green-glow);box-shadow:0 0 24px rgba(0,232,123,0.08)}
+.btn:disabled{opacity:0.3;cursor:not-allowed;pointer-events:none}
+.btn .sp{display:none;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin 0.7s linear infinite;margin-right:8px;vertical-align:middle}
+.btn.ld .sp{display:inline-block}.btn.ld{pointer-events:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn.cp{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+.tb{display:flex;justify-content:center;gap:28px;flex-wrap:wrap;padding:4px 24px 36px;position:relative;z-index:1}
+.ti{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim)}
+.ti .td{width:5px;height:5px;border-radius:50%;background:var(--green)}
+.how{max-width:680px;margin:0 auto;padding:24px 24px 56px;text-align:center;position:relative;z-index:1}
+.how h2{font-size:17px;color:var(--bright);margin-bottom:28px;font-weight:600}
+.steps{display:flex;gap:36px;justify-content:center;flex-wrap:wrap}
+.step{flex:1;min-width:150px}
+.step .num{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:var(--green);margin-bottom:6px}
+.step .desc{font-size:13px;color:var(--dim);line-height:1.5}
+footer{text-align:center;padding:28px;font-size:12px;color:var(--dim);border-top:1px solid var(--border);position:relative;z-index:1}
+footer a{color:var(--green);text-decoration:none}
+footer a:hover{text-decoration:underline}
+@media(max-width:768px){.panels{grid-template-columns:1fr}.mbar{grid-template-columns:repeat(2,1fr)}.mc:nth-child(2){border-right:none}nav .links{display:none}.wizard{width:95%}.wizard-step{padding:28px 24px}}
 </style>
 </head>
 <body>
 
-<nav>
-  <a href="https://axlprotocol.org" class="logo">AXL <span>COMPRESS</span></a>
-  <div class="links">
-    <a href="https://axlprotocol.org">Protocol</a>
-    <a href="https://axlprotocol.org/rosetta">Rosetta</a>
-    <a href="https://github.com/axlprotocol">GitHub</a>
-  </div>
-</nav>
-
-<div class="hero">
-  <h1>Fit <em>10x more</em> into any LLM</h1>
-  <p>Paste English prose. Get AXL-compressed output. Copy it into ChatGPT, Claude, Gemini, Grok. Same meaning. 10x fewer tokens. Your context window just got 10x bigger.</p>
+<div class="wizard-overlay" id="wo">
+<div class="wizard">
+<div class="wizard-step active" id="ws1">
+<div class="sn">WHAT IS THIS</div>
+<h2>Fit <em>10x more</em> into any LLM</h2>
+<p>This tool compresses your text using AXL Protocol -- a universal language for AI. Paste a 5,000-word report. Get 500 words of compressed output. Paste that into ChatGPT, Claude, Gemini, or Grok -- it understands perfectly.</p>
+<div class="cb">English: "The Federal Reserve held rates at 5.25%.<br>Markets dropped 0.3% on the S&amp;P 500..."<br><br>AXL: ID:FED-01|OBS.99|!rate_hold|@fed|$rate:5.25%|NOW<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ID:MKT-01|OBS.95|$SPY|&lt;-!rate_hold|^-0.3%|NOW</div>
+</div>
+<div class="wizard-step" id="ws2">
+<div class="sn">YOUR API KEY</div>
+<h2>Why do I need <em>a key</em>?</h2>
+<p>Compression is done by an LLM (Claude or GPT). The API call goes <strong style="color:var(--bright)">directly from your browser</strong> to Anthropic or OpenAI. We are not in the middle.</p>
+<p>No backend. No server. No logging. Your key never leaves your browser. Verify: open DevTools, Network tab. Every request goes to api.anthropic.com or api.openai.com. Not to us.</p>
+<p style="color:var(--green)">Cost: ~$0.01 per compression.</p>
+</div>
+<div class="wizard-step" id="ws3">
+<div class="sn">GET A KEY (2 MINUTES)</div>
+<h2>Create a <em>free account</em></h2>
+<div class="kl">
+<a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic &rarr; API Keys</a>
+<a href="https://platform.openai.com/api-keys" target="_blank">OpenAI &rarr; API Keys</a>
+</div>
+<p>Create an account, generate a key, paste it in the field. Keys start with <span class="mono" style="color:var(--green)">sk-</span></p>
+</div>
+<div class="wizard-step" id="ws4">
+<div class="sn">TRY IT</div>
+<h2>Paste anything. <em>Compress.</em></h2>
+<p>Research papers, meeting notes, reports, a novel chapter, raw data, a prompt you wrote at 2am -- anything.</p>
+<p>The output starts with the Rosetta URL. When you paste it into any LLM, the model reads that URL, learns AXL instantly, and processes your compressed content.</p>
+<p style="color:var(--green)">Every compression spreads the protocol to another LLM.</p>
+</div>
+<div class="wn">
+<div class="wd"><div class="d a"></div><div class="d"></div><div class="d"></div><div class="d"></div></div>
+<div style="display:flex;gap:8px"><button class="wb sk" onclick="cw()">Skip</button><button class="wb p" id="wn" onclick="nw()">NEXT</button></div>
+</div>
+</div>
 </div>
 
+<nav>
+<a href="https://axlprotocol.org" class="logo"><div class="mark"></div>AXL <span>COMPRESS</span></a>
+<div class="links">
+<a href="https://axlprotocol.org">Protocol</a>
+<a href="https://docs.axlprotocol.org">Docs</a>
+<a href="https://axlprotocol.org/rosetta">Rosetta</a>
+<a href="https://github.com/axlprotocol">GitHub</a>
+</div>
+</nav>
+
+<div class="hero"><h1>Fit <em>10x more</em> into any LLM</h1><p>Paste English. Get AXL. Copy into ChatGPT, Claude, Gemini, Grok. Same meaning. 10x fewer tokens. Free.</p></div>
+
 <div class="api-section">
-  <div class="api-row">
-    <select id="providerSelect">
-      <option value="anthropic">Anthropic</option>
-      <option value="openai">OpenAI</option>
-    </select>
-    <input type="password" id="apiKeyInput" placeholder="Your API key (stays in your browser, never sent to us)">
-  </div>
-  <div class="api-note">Your key. Your tokens. We never see or store your API key.</div>
+<div class="api-row">
+<select id="ps"><option value="anthropic">Anthropic</option><option value="openai">OpenAI</option></select>
+<input type="password" id="ak" placeholder="sk-... (your API key)" autocomplete="off" spellcheck="false">
+</div>
+<div class="api-note"><span class="lk">&#x1f512;</span> Client-side only. We never see, store, or transmit your key.</div>
+<div class="api-help"><a href="#" onclick="sw();return false">How does this work? What's an API key?</a></div>
 </div>
 
 <div class="workspace">
-  <div class="panels">
-    <div class="panel input">
-      <div class="panel-header">
-        <span class="label eng">ENGLISH INPUT</span>
-        <span class="token-count" id="inputTokens">0 chars</span>
-      </div>
-      <textarea id="inputText" placeholder="Paste your English text here...&#10;&#10;Research papers, meeting notes, documentation, reports, code reviews, analysis — anything you want to compress before sending to an LLM.&#10;&#10;The compressed output works with any LLM: ChatGPT, Claude, Gemini, Grok, Llama, Mistral."></textarea>
-    </div>
-    <div class="panel output">
-      <div class="panel-header">
-        <span class="label axl">AXL OUTPUT</span>
-        <span class="token-count" id="outputTokens">0 chars</span>
-      </div>
-      <textarea id="outputText" readonly placeholder="Compressed AXL output appears here...&#10;&#10;The first line is always the Rosetta URL.&#10;When you paste this into any LLM, it reads the URL, learns AXL instantly, and processes your compressed content."></textarea>
-    </div>
-  </div>
+<div class="panels">
+<div class="panel input">
+<div class="panel-header"><span class="label eng">ENGLISH</span><span class="tc" id="ic">0 chars</span></div>
+<textarea id="it" placeholder="Paste anything here...&#10;&#10;Research papers, meeting notes, reports, documentation, raw data, a novel chapter, a prompt you wrote at 2am.&#10;&#10;Works with any LLM."></textarea>
+</div>
+<div class="panel output" id="op">
+<div class="panel-header"><span class="label axl">AXL</span><span class="tc" id="oc">0 chars</span></div>
+<textarea id="ot" readonly placeholder="Compressed AXL output appears here...&#10;&#10;First line = Rosetta URL.&#10;Paste into any LLM -- it reads the URL,&#10;learns AXL, processes your content."></textarea>
+</div>
+</div>
+<div class="mbar">
+<div class="mc"><div class="ml">Input</div><div class="mv" id="mi">--</div></div>
+<div class="mc"><div class="ml">Output</div><div class="mv g" id="mo">--</div></div>
+<div class="mc"><div class="ml">Ratio</div><div class="mv go" id="mr">--</div></div>
+<div class="mc"><div class="ml">Saved</div><div class="mv g" id="ms">--</div></div>
+</div>
+</div>
 
-  <div class="action-bar">
-    <div class="stats">
-      <div>Input: <span class="value" id="statInput">0</span> chars</div>
-      <div>Output: <span class="value" id="statOutput">0</span> chars</div>
-      <div>Compression: <span class="ratio" id="statRatio">—</span></div>
-      <div>Saved: <span class="value" id="statSaved">0</span> chars</div>
-    </div>
-    <div style="display:flex;align-items:center;gap:12px">
-      <div class="loading" id="loadingIndicator">
-        <div class="spinner"></div>
-        Compressing...
-      </div>
-      <div class="buttons">
-        <button class="btn" onclick="copyOutput()" id="btnCopy" disabled>COPY</button>
-        <button class="btn primary" onclick="compress()" id="btnCompress">COMPRESS</button>
-      </div>
-    </div>
-  </div>
+<div class="abar">
+<button class="btn pr" onclick="compress()" id="bc"><span class="sp"></span>COMPRESS</button>
+<button class="btn" onclick="copyOut()" id="bcp" disabled>COPY TO CLIPBOARD</button>
+<button class="btn" onclick="clearAll()">CLEAR</button>
+</div>
+
+<div class="tb">
+<div class="ti"><span class="td"></span>API calls go direct from your browser to the provider</div>
+<div class="ti"><span class="td"></span>No backend. No logging. No tracking.</div>
+<div class="ti"><span class="td"></span>Every output carries the Rosetta URL</div>
 </div>
 
 <div class="how">
-  <h2>How it works</h2>
-  <div class="steps">
-    <div class="step">
-      <div class="num">1</div>
-      <div class="desc">Paste your English text — research, reports, docs, anything</div>
-    </div>
-    <div class="step">
-      <div class="num">2</div>
-      <div class="desc">AXL compresses it using 7 cognitive operations and typed semantic tags</div>
-    </div>
-    <div class="step">
-      <div class="num">3</div>
-      <div class="desc">Copy the output into any LLM — it reads the Rosetta URL and decodes instantly</div>
-    </div>
-  </div>
+<h2>How it works</h2>
+<div class="steps">
+<div class="step"><div class="num">1</div><div class="desc">Paste English -- research, reports, notes, anything</div></div>
+<div class="step"><div class="num">2</div><div class="desc">AXL compresses using 7 cognitive operations and 6 typed tags</div></div>
+<div class="step"><div class="num">3</div><div class="desc">Copy into any LLM -- it reads the Rosetta URL and decodes instantly</div></div>
+</div>
 </div>
 
 <footer>
-  <a href="https://axlprotocol.org">AXL Protocol</a> &middot; 2026 &middot; Free forever &middot;
-  Every output carries the <a href="https://axlprotocol.org/rosetta">Rosetta</a> &middot;
-  <a href="https://github.com/axlprotocol">GitHub</a>
+<a href="https://axlprotocol.org">AXL Protocol</a> &middot; 2026 &middot; Free forever &middot;
+<a href="https://axlprotocol.org/rosetta">Rosetta</a> &middot;
+<a href="https://docs.axlprotocol.org">Docs</a> &middot;
+<a href="https://github.com/axlprotocol">GitHub</a>
 </footer>
 
 <script>
-const ROSETTA_URL = 'https://axlprotocol.org/rosetta';
+let ws=1;const ts=4;
+function sw(){ws=1;uw();document.getElementById('wo').classList.remove('hidden')}
+function cw(){document.getElementById('wo').classList.add('hidden');try{localStorage.setItem('axl-wiz','1')}catch(e){}}
+function nw(){if(ws>=ts){cw();return}ws++;uw()}
+function uw(){for(let i=1;i<=ts;i++)document.getElementById('ws'+i).classList.toggle('active',i===ws);document.querySelectorAll('.wd .d').forEach((d,i)=>d.classList.toggle('a',i<ws));document.getElementById('wn').textContent=ws>=ts?'START':'NEXT'}
+try{if(localStorage.getItem('axl-wiz'))document.getElementById('wo').classList.add('hidden')}catch(e){}
 
-const COMPRESS_SYSTEM = `You are an AXL compression engine. You receive English text and compress it into AXL packets.
-
+const SYS=`You are an AXL compression engine. You receive English text and compress it into AXL packets.
 RULES:
-1. The FIRST line of your output MUST be exactly: @axlprotocol.org/rosetta
-2. Every subsequent line is a single AXL packet starting with π:
-3. Preserve ALL semantic content — names, numbers, relationships, causality, confidence levels
-4. Use subject tags: $ (financial), @ (entity), # (metric), ! (event), ~ (state), ^ (value)
-5. Use cognitive operations: OBS for facts, INF for conclusions, CON for contradictions, MRG for syntheses, PRD for predictions
-6. Group related information into single packets using + chains
-7. Output NOTHING except the Rosetta URL line and AXL packets
-8. NO English. NO explanations. NO headers. NO markdown. NO blank lines.`;
+1. FIRST line MUST be exactly: @axlprotocol.org/rosetta
+2. Every subsequent line is ONE AXL packet starting with ID:
+3. ASCII mode: ID: for identity, <- for evidence, => for transition, up/down for direction
+4. Operations: OBS facts, INF conclusions, CON contradictions, MRG syntheses, PRD predictions
+5. Tags: $ financial, @ entity, # metric, ! event, ~ state, ^ value
+6. Preserve ALL: names, numbers, relationships, causality, confidence
+7. Chain evidence with +
+8. Under 40 words per packet. One line.
+9. ONLY Rosetta URL + AXL packets. NO English. NO markdown. NO blanks.`;
 
-// Update char counts on input
-document.getElementById('inputText').addEventListener('input', function() {
-  const len = this.value.length;
-  document.getElementById('inputTokens').textContent = len.toLocaleString() + ' chars';
-  document.getElementById('statInput').textContent = len.toLocaleString();
-});
+function sanIn(t){let c=t;c=c.replace(/page \d+ of \d+/gi,'');c=c.replace(/^\s*\d+\s*$/gm,'');c=c.replace(/^[-=_]{3,}$/gm,'');c=c.replace(/\t/g,' ');c=c.replace(/ {3,}/g,' ');c=c.replace(/\n{4,}/g,'\n\n\n');return c.trim()}
 
-async function compress() {
-  const input = document.getElementById('inputText').value.trim();
-  if (!input) return;
+function sanOut(r){const ls=r.split('\n').map(l=>l.trim()).filter(l=>l);const cl=[];for(const l of ls){
+if(l.startsWith('@axlprotocol.org')){cl.push(l);continue}
+if(l.startsWith('ID:')||l.startsWith('π:')||l.startsWith('P:')){let p=l;
+[/\.\s+[A-Z][a-z]/,/\s+—\s+/,/\s+\(Note:/,/\s+This\s/,/\s+The\s/,/\s+Based\s/].forEach(rx=>{const m=p.match(rx);if(m&&m.index>20)p=p.substring(0,m.index).replace(/[\.\s]+$/,'')});
+cl.push(p);continue}
+if(l.includes('|')&&/\b(OBS|INF|CON|MRG|SEK|YLD|PRD)\b/.test(l))cl.push(l)}
+return cl.join('\n')}
 
-  const apiKey = document.getElementById('apiKeyInput').value.trim();
-  if (!apiKey) {
-    alert('Please enter your API key. It stays in your browser — we never see it.');
-    return;
-  }
+document.getElementById('it').addEventListener('input',function(){document.getElementById('ic').textContent=this.value.length.toLocaleString()+' chars'});
 
-  const provider = document.getElementById('providerSelect').value;
-  const btn = document.getElementById('btnCompress');
-  const loading = document.getElementById('loadingIndicator');
+async function compress(){
+const raw=document.getElementById('it').value.trim();if(!raw)return;
+const key=document.getElementById('ak').value.trim();
+if(!key){const i=document.getElementById('ak');i.classList.add('err');i.focus();setTimeout(()=>i.classList.remove('err'),2000);return}
+const pv=document.getElementById('ps').value;
+const btn=document.getElementById('bc');btn.classList.add('ld');
+try{const input=sanIn(raw);let result;
+if(pv==='anthropic'){
+const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4096,system:SYS,messages:[{role:'user',content:'Compress this into AXL packets:\n\n'+input}]})});
+if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API error')}
+const d=await r.json();result=d.content[0].text}
+else{
+const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'gpt-4o',max_tokens:4096,messages:[{role:'system',content:SYS},{role:'user',content:'Compress this into AXL packets:\n\n'+input}]})});
+if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API error')}
+const d=await r.json();result=d.choices[0].message.content}
+const clean=sanOut(result);document.getElementById('ot').value=clean;document.getElementById('op').classList.add('on');
+const il=raw.length,ol=clean.length,ratio=(il/Math.max(ol,1)).toFixed(1),saved=il-ol;
+const pkts=clean.split('\n').filter(l=>l.startsWith('ID:')||l.startsWith('π:')).length;
+document.getElementById('oc').textContent=ol.toLocaleString()+' chars · '+pkts+' pkts';
+document.getElementById('mi').textContent=il.toLocaleString();
+document.getElementById('mo').textContent=ol.toLocaleString();
+document.getElementById('mr').textContent=ratio+'x';
+document.getElementById('ms').textContent=saved.toLocaleString();
+document.getElementById('bcp').disabled=false}
+catch(e){document.getElementById('ot').value='Error: '+e.message;document.getElementById('op').classList.remove('on')}
+finally{btn.classList.remove('ld')}}
 
-  btn.disabled = true;
-  loading.classList.add('active');
+function copyOut(){const o=document.getElementById('ot');navigator.clipboard.writeText(o.value).then(()=>{const b=document.getElementById('bcp');const t=b.textContent;b.textContent='COPIED';b.classList.add('cp');setTimeout(()=>{b.textContent=t;b.classList.remove('cp')},2000)})}
 
-  try {
-    let result;
-    if (provider === 'anthropic') {
-      result = await callAnthropic(apiKey, input);
-    } else {
-      result = await callOpenAI(apiKey, input);
-    }
+function clearAll(){document.getElementById('it').value='';document.getElementById('ot').value='';document.getElementById('ic').textContent='0 chars';document.getElementById('oc').textContent='0 chars';['mi','mo','mr','ms'].forEach(id=>document.getElementById(id).textContent='--');document.getElementById('bcp').disabled=true;document.getElementById('op').classList.remove('on')}
 
-    document.getElementById('outputText').value = result;
-
-    // Stats
-    const inputLen = input.length;
-    const outputLen = result.length;
-    const ratio = (inputLen / Math.max(outputLen, 1)).toFixed(2);
-    const saved = inputLen - outputLen;
-
-    document.getElementById('outputTokens').textContent = outputLen.toLocaleString() + ' chars';
-    document.getElementById('statOutput').textContent = outputLen.toLocaleString();
-    document.getElementById('statRatio').textContent = ratio + 'x';
-    document.getElementById('statSaved').textContent = saved.toLocaleString();
-    document.getElementById('btnCopy').disabled = false;
-
-  } catch (err) {
-    alert('Error: ' + err.message);
-  } finally {
-    btn.disabled = false;
-    loading.classList.remove('active');
-  }
-}
-
-async function callAnthropic(apiKey, text) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      system: COMPRESS_SYSTEM,
-      messages: [{ role: 'user', content: 'Compress this into AXL packets:\n\n' + text }],
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error?.message || 'API request failed');
-  }
-
-  const data = await res.json();
-  return data.content[0].text;
-}
-
-async function callOpenAI(apiKey, text) {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + apiKey,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      max_tokens: 4096,
-      messages: [
-        { role: 'system', content: COMPRESS_SYSTEM },
-        { role: 'user', content: 'Compress this into AXL packets:\n\n' + text },
-      ],
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error?.message || 'API request failed');
-  }
-
-  const data = await res.json();
-  return data.choices[0].message.content;
-}
-
-function copyOutput() {
-  const output = document.getElementById('outputText');
-  output.select();
-  navigator.clipboard.writeText(output.value).then(() => {
-    const btn = document.getElementById('btnCopy');
-    btn.textContent = 'COPIED';
-    setTimeout(() => { btn.textContent = 'COPY'; }, 1500);
-  });
-}
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter')compress()});
 </script>
-
 </body>
 </html>
