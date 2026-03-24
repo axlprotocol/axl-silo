@@ -28,7 +28,7 @@ What comes out is intelligence no single model could produce alone.
 
 ## What This Is
 
-A contained workspace where multiple LLMs from different providers communicate exclusively through [AXL Protocol](https://axlprotocol.org) — a 445-line specification that any AI learns on first read.
+A contained workspace where multiple LLMs from different providers communicate exclusively through [AXL Protocol](https://axlprotocol.org), a 445-line specification that any AI learns on first read.
 
 You bring the models. You bring the API keys. The Silo provides the language.
 
@@ -259,4 +259,4 @@ Apache 2.0
 ---
 
 *AXL Protocol · 2026 · Vancouver, BC*
-*We don't create intelligence. We collide it.*
+*We don't create intelligence. We accelerate and collide it for a 10x output.*
