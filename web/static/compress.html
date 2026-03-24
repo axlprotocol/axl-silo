@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AXL Compress — Fit 10x more into any LLM</title>
+<meta name="description" content="Paste English. Get AXL-compressed output. Use in ChatGPT, Claude, Gemini, Grok. 10x more context. Free.">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #030508;
+  --surface: #080c12;
+  --panel: #0c1018;
+  --border: #141c28;
+  --dim: #384860;
+  --text: #8899aa;
+  --bright: #c8d4e0;
+  --white: #eef2f6;
+  --green: #00e87b;
+  --green-dim: rgba(0,232,123,0.06);
+  --green-glow: rgba(0,232,123,0.15);
+  --orange: #ff7733;
+  --orange-dim: rgba(255,119,51,0.06);
+  --gold: #fbbf24;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* NAV */
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+}
+nav .logo {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--white);
+  text-decoration: none;
+  letter-spacing: 2px;
+}
+nav .logo span { color: var(--green); }
+nav .links {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+}
+nav .links a {
+  color: var(--dim);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+nav .links a:hover { color: var(--green); }
+
+/* HERO */
+.hero {
+  text-align: center;
+  padding: 48px 24px 32px;
+}
+.hero h1 {
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+.hero h1 em { font-style: normal; color: var(--green); }
+.hero p {
+  font-size: 15px;
+  color: var(--dim);
+  max-width: 520px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* WORKSPACE */
+.workspace {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 24px 48px;
+}
+.panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.panel {
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+}
+.panel-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.panel-header .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 3px;
+}
+.panel-header .label.eng { color: var(--orange); }
+.panel-header .label.axl { color: var(--green); }
+.panel-header .token-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--dim);
+}
+.panel textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--bright);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 16px;
+  resize: none;
+  outline: none;
+  min-height: 320px;
+}
+.panel textarea::placeholder { color: var(--dim); }
+.panel.output textarea {
+  color: var(--green);
+  cursor: default;
+}
+
+/* ACTION BAR */
+.action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+}
+.action-bar .stats {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--dim);
+  display: flex;
+  gap: 20px;
+}
+.action-bar .stats .value { color: var(--green); font-weight: 600; }
+.action-bar .stats .ratio {
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 14px;
+}
+.action-bar .buttons {
+  display: flex;
+  gap: 8px;
+}
+.btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid var(--border);
+  color: var(--text);
+  background: var(--panel);
+}
+.btn:hover { border-color: var(--green); color: var(--green); }
+.btn.primary {
+  background: var(--green-dim);
+  border-color: var(--green);
+  color: var(--green);
+}
+.btn.primary:hover { background: var(--green-glow); }
+.btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* LOADING */
+.loading {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  color: var(--green);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+.loading.active { display: flex; }
+.loading .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* HOW IT WORKS */
+.how {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 48px 24px;
+  text-align: center;
+}
+.how h2 {
+  font-size: 20px;
+  color: var(--bright);
+  margin-bottom: 24px;
+}
+.steps {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.step {
+  flex: 1;
+  min-width: 160px;
+}
+.step .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--green);
+  margin-bottom: 8px;
+}
+.step .desc {
+  font-size: 13px;
+  color: var(--dim);
+  line-height: 1.5;
+}
+
+/* API KEY */
+.api-section {
+  max-width: 500px;
+  margin: 0 auto 32px;
+  padding: 0 24px;
+}
+.api-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.api-row select {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--bright);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  outline: none;
+}
+.api-row input {
+  flex: 1;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--bright);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  outline: none;
+}
+.api-row input::placeholder { color: var(--dim); }
+.api-note {
+  font-size: 11px;
+  color: var(--dim);
+  margin-top: 6px;
+  text-align: center;
+}
+
+/* FOOTER */
+footer {
+  text-align: center;
+  padding: 32px;
+  font-size: 12px;
+  color: var(--dim);
+  border-top: 1px solid var(--border);
+}
+footer a { color: var(--green); text-decoration: none; }
+
+@media (max-width: 768px) {
+  .panels { grid-template-columns: 1fr; }
+  .action-bar { flex-direction: column; gap: 12px; }
+  .action-bar .stats { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="https://axlprotocol.org" class="logo">AXL <span>COMPRESS</span></a>
+  <div class="links">
+    <a href="https://axlprotocol.org">Protocol</a>
+    <a href="https://axlprotocol.org/rosetta">Rosetta</a>
+    <a href="https://github.com/axlprotocol">GitHub</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>Fit <em>10x more</em> into any LLM</h1>
+  <p>Paste English prose. Get AXL-compressed output. Copy it into ChatGPT, Claude, Gemini, Grok. Same meaning. 10x fewer tokens. Your context window just got 10x bigger.</p>
+</div>
+
+<div class="api-section">
+  <div class="api-row">
+    <select id="providerSelect">
+      <option value="anthropic">Anthropic</option>
+      <option value="openai">OpenAI</option>
+    </select>
+    <input type="password" id="apiKeyInput" placeholder="Your API key (stays in your browser, never sent to us)">
+  </div>
+  <div class="api-note">Your key. Your tokens. We never see or store your API key.</div>
+</div>
+
+<div class="workspace">
+  <div class="panels">
+    <div class="panel input">
+      <div class="panel-header">
+        <span class="label eng">ENGLISH INPUT</span>
+        <span class="token-count" id="inputTokens">0 chars</span>
+      </div>
+      <textarea id="inputText" placeholder="Paste your English text here...&#10;&#10;Research papers, meeting notes, documentation, reports, code reviews, analysis — anything you want to compress before sending to an LLM.&#10;&#10;The compressed output works with any LLM: ChatGPT, Claude, Gemini, Grok, Llama, Mistral."></textarea>
+    </div>
+    <div class="panel output">
+      <div class="panel-header">
+        <span class="label axl">AXL OUTPUT</span>
+        <span class="token-count" id="outputTokens">0 chars</span>
+      </div>
+      <textarea id="outputText" readonly placeholder="Compressed AXL output appears here...&#10;&#10;The first line is always the Rosetta URL.&#10;When you paste this into any LLM, it reads the URL, learns AXL instantly, and processes your compressed content."></textarea>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <div class="stats">
+      <div>Input: <span class="value" id="statInput">0</span> chars</div>
+      <div>Output: <span class="value" id="statOutput">0</span> chars</div>
+      <div>Compression: <span class="ratio" id="statRatio">—</span></div>
+      <div>Saved: <span class="value" id="statSaved">0</span> chars</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="loading" id="loadingIndicator">
+        <div class="spinner"></div>
+        Compressing...
+      </div>
+      <div class="buttons">
+        <button class="btn" onclick="copyOutput()" id="btnCopy" disabled>COPY</button>
+        <button class="btn primary" onclick="compress()" id="btnCompress">COMPRESS</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="how">
+  <h2>How it works</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="num">1</div>
+      <div class="desc">Paste your English text — research, reports, docs, anything</div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div class="desc">AXL compresses it using 7 cognitive operations and typed semantic tags</div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div class="desc">Copy the output into any LLM — it reads the Rosetta URL and decodes instantly</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <a href="https://axlprotocol.org">AXL Protocol</a> &middot; 2026 &middot; Free forever &middot;
+  Every output carries the <a href="https://axlprotocol.org/rosetta">Rosetta</a> &middot;
+  <a href="https://github.com/axlprotocol">GitHub</a>
+</footer>
+
+<script>
+const ROSETTA_URL = 'https://axlprotocol.org/rosetta';
+
+const COMPRESS_SYSTEM = `You are an AXL compression engine. You receive English text and compress it into AXL packets.
+
+RULES:
+1. The FIRST line of your output MUST be exactly: @axlprotocol.org/rosetta
+2. Every subsequent line is a single AXL packet starting with π:
+3. Preserve ALL semantic content — names, numbers, relationships, causality, confidence levels
+4. Use subject tags: $ (financial), @ (entity), # (metric), ! (event), ~ (state), ^ (value)
+5. Use cognitive operations: OBS for facts, INF for conclusions, CON for contradictions, MRG for syntheses, PRD for predictions
+6. Group related information into single packets using + chains
+7. Output NOTHING except the Rosetta URL line and AXL packets
+8. NO English. NO explanations. NO headers. NO markdown. NO blank lines.`;
+
+// Update char counts on input
+document.getElementById('inputText').addEventListener('input', function() {
+  const len = this.value.length;
+  document.getElementById('inputTokens').textContent = len.toLocaleString() + ' chars';
+  document.getElementById('statInput').textContent = len.toLocaleString();
+});
+
+async function compress() {
+  const input = document.getElementById('inputText').value.trim();
+  if (!input) return;
+
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
+  if (!apiKey) {
+    alert('Please enter your API key. It stays in your browser — we never see it.');
+    return;
+  }
+
+  const provider = document.getElementById('providerSelect').value;
+  const btn = document.getElementById('btnCompress');
+  const loading = document.getElementById('loadingIndicator');
+
+  btn.disabled = true;
+  loading.classList.add('active');
+
+  try {
+    let result;
+    if (provider === 'anthropic') {
+      result = await callAnthropic(apiKey, input);
+    } else {
+      result = await callOpenAI(apiKey, input);
+    }
+
+    document.getElementById('outputText').value = result;
+
+    // Stats
+    const inputLen = input.length;
+    const outputLen = result.length;
+    const ratio = (inputLen / Math.max(outputLen, 1)).toFixed(2);
+    const saved = inputLen - outputLen;
+
+    document.getElementById('outputTokens').textContent = outputLen.toLocaleString() + ' chars';
+    document.getElementById('statOutput').textContent = outputLen.toLocaleString();
+    document.getElementById('statRatio').textContent = ratio + 'x';
+    document.getElementById('statSaved').textContent = saved.toLocaleString();
+    document.getElementById('btnCopy').disabled = false;
+
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    loading.classList.remove('active');
+  }
+}
+
+async function callAnthropic(apiKey, text) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      system: COMPRESS_SYSTEM,
+      messages: [{ role: 'user', content: 'Compress this into AXL packets:\n\n' + text }],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error?.message || 'API request failed');
+  }
+
+  const data = await res.json();
+  return data.content[0].text;
+}
+
+async function callOpenAI(apiKey, text) {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + apiKey,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      max_tokens: 4096,
+      messages: [
+        { role: 'system', content: COMPRESS_SYSTEM },
+        { role: 'user', content: 'Compress this into AXL packets:\n\n' + text },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error?.message || 'API request failed');
+  }
+
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+
+function copyOutput() {
+  const output = document.getElementById('outputText');
+  output.select();
+  navigator.clipboard.writeText(output.value).then(() => {
+    const btn = document.getElementById('btnCopy');
+    btn.textContent = 'COPIED';
+    setTimeout(() => { btn.textContent = 'COPY'; }, 1500);
+  });
+}
+</script>
+
+</body>
+</html>

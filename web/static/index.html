@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AXL SILO — Particle Accelerator for LLMs</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void: #000000;
+  --surface: #070a0f;
+  --panel: #0c1018;
+  --border: #141c28;
+  --border-active: #1e2d42;
+  --dim: #384860;
+  --text: #8899aa;
+  --bright: #c8d4e0;
+  --white: #eef2f6;
+  --axl-green: #00e87b;
+  --axl-green-dim: rgba(0,232,123,0.08);
+  --axl-green-glow: rgba(0,232,123,0.25);
+  --warn-orange: #ff7733;
+  --warn-orange-dim: rgba(255,119,51,0.08);
+  --gold: #fbbf24;
+  --gold-dim: rgba(251,191,36,0.08);
+  --purple: #a78bfa;
+  --red: #ef4444;
+  --cyan: #22d3ee;
+
+  /* Operation colors */
+  --op-obs: #22d3ee;
+  --op-inf: #60a5fa;
+  --op-con: #ef4444;
+  --op-mrg: #fbbf24;
+  --op-sek: #facc15;
+  --op-yld: #a78bfa;
+  --op-prd: #00e87b;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--void);
+  color: var(--text);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* ═══ LAYOUT ═══ */
+.app {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  grid-template-rows: 56px 1fr 48px;
+  height: 100vh;
+  gap: 1px;
+  background: var(--border);
+}
+
+/* ═══ HEADER ═══ */
+.header {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+}
+.header .logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.header .logo-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: conic-gradient(var(--axl-green), var(--cyan), var(--purple), var(--axl-green));
+  animation: ring-spin 8s linear infinite;
+}
+@keyframes ring-spin { to { transform: rotate(360deg); } }
+.header .logo-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--white);
+  letter-spacing: 3px;
+}
+.header .logo-sub {
+  font-size: 11px;
+  color: var(--dim);
+  letter-spacing: 2px;
+  margin-left: 12px;
+}
+.header .controls {
+  display: flex;
+  gap: 8px;
+}
+.header .controls button {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.header .controls button:hover {
+  border-color: var(--axl-green);
+  color: var(--axl-green);
+}
+.header .controls button.active {
+  background: var(--axl-green-dim);
+  border-color: var(--axl-green);
+  color: var(--axl-green);
+}
+.header .controls button.danger {
+  border-color: var(--red);
+  color: var(--red);
+}
+.header .status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.header .status .state {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  padding: 4px 10px;
+  border-radius: 3px;
+}
+.header .status .state.running { background: var(--axl-green-dim); color: var(--axl-green); }
+.header .status .state.ready { background: var(--gold-dim); color: var(--gold); }
+.header .status .state.paused { background: var(--warn-orange-dim); color: var(--warn-orange); }
+.header .status .state.init { background: rgba(56,72,96,0.2); color: var(--dim); }
+
+/* ═══ LEFT PANEL: AGENTS ═══ */
+.panel-left {
+  background: var(--surface);
+  overflow-y: auto;
+  padding: 16px;
+}
+.panel-left h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--dim);
+  margin-bottom: 12px;
+}
+.agent-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.agent-card:hover { border-color: var(--border-active); }
+.agent-card.active { border-color: var(--axl-green); border-left: 3px solid var(--axl-green); }
+.agent-card .name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--bright);
+  margin-bottom: 2px;
+}
+.agent-card .role {
+  font-size: 11px;
+  color: var(--dim);
+  margin-bottom: 6px;
+}
+.agent-card .meta {
+  display: flex;
+  gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+}
+.agent-card .meta .provider {
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--axl-green-dim);
+  color: var(--axl-green);
+}
+.agent-card .meta .packets {
+  color: var(--dim);
+}
+
+/* ═══ CENTER: THE BUS ═══ */
+.panel-center {
+  background: var(--void);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.bus-header {
+  padding: 12px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.bus-header h2 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--dim);
+}
+.bus-header .stats {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--dim);
+  display: flex;
+  gap: 16px;
+}
+.bus-header .stats span { color: var(--axl-green); }
+
+.bus-feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.bus-feed::-webkit-scrollbar { width: 4px; }
+.bus-feed::-webkit-scrollbar-track { background: var(--void); }
+.bus-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.packet-row {
+  padding: 8px 20px;
+  border-bottom: 1px solid rgba(20,28,40,0.5);
+  animation: packet-in 0.3s ease-out;
+  transition: background 0.15s;
+}
+.packet-row:hover { background: rgba(12,16,24,0.8); }
+@keyframes packet-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.packet-row .meta-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.packet-row .round-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--dim);
+  background: rgba(56,72,96,0.15);
+  padding: 1px 6px;
+  border-radius: 2px;
+  letter-spacing: 1px;
+}
+.packet-row .agent-name {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--bright);
+}
+.packet-row .op-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 1px;
+}
+.op-badge.OBS { background: rgba(34,211,238,0.1); color: var(--op-obs); }
+.op-badge.INF { background: rgba(96,165,250,0.1); color: var(--op-inf); }
+.op-badge.CON { background: rgba(239,68,68,0.1); color: var(--op-con); }
+.op-badge.MRG { background: rgba(251,191,36,0.1); color: var(--op-mrg); }
+.op-badge.SEK { background: rgba(250,204,21,0.1); color: var(--op-sek); }
+.op-badge.YLD { background: rgba(167,139,250,0.1); color: var(--op-yld); }
+.op-badge.PRD { background: rgba(0,232,123,0.1); color: var(--op-prd); }
+
+.packet-row .provider-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--dim);
+  letter-spacing: 1px;
+}
+.packet-row .conf {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--dim);
+}
+.packet-row .raw-packet {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--axl-green);
+  line-height: 1.5;
+  word-break: break-all;
+  padding: 4px 0;
+}
+.packet-row .decoded {
+  font-size: 11px;
+  color: var(--dim);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* ═══ INJECT BAR ═══ */
+.inject-bar {
+  padding: 10px 20px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+}
+.inject-bar input {
+  flex: 1;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--axl-green);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  outline: none;
+}
+.inject-bar input::placeholder { color: var(--dim); }
+.inject-bar input:focus { border-color: var(--axl-green); }
+.inject-bar button {
+  background: var(--axl-green-dim);
+  border: 1px solid var(--axl-green);
+  color: var(--axl-green);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 1px;
+}
+
+/* ═══ RIGHT PANEL: SIGNAL & STATS ═══ */
+.panel-right {
+  background: var(--surface);
+  overflow-y: auto;
+  padding: 16px;
+}
+.panel-right h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--dim);
+  margin-bottom: 12px;
+}
+
+.signal-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.signal-card .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--dim);
+  margin-bottom: 4px;
+}
+.signal-card .value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--white);
+}
+.signal-card .value.green { color: var(--axl-green); }
+.signal-card .value.gold { color: var(--gold); }
+
+.ops-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.ops-grid .op-stat {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  text-align: center;
+}
+.ops-grid .op-stat .code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.ops-grid .op-stat .count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--bright);
+}
+
+.providers-list {
+  margin-bottom: 12px;
+}
+.provider-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(20,28,40,0.5);
+  font-size: 12px;
+}
+.provider-row .name { color: var(--bright); }
+.provider-row .model {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--dim);
+}
+
+/* ═══ FOOTER ═══ */
+.footer {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 1px;
+}
+.footer a { color: var(--axl-green); text-decoration: none; }
+
+/* ═══ SETUP OVERLAY ═══ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(8px);
+}
+.overlay.hidden { display: none; }
+.setup-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 32px;
+  width: 560px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.setup-card h2 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: var(--white);
+  margin-bottom: 4px;
+}
+.setup-card .sub {
+  font-size: 13px;
+  color: var(--dim);
+  margin-bottom: 24px;
+}
+.setup-card label {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--dim);
+  margin-bottom: 4px;
+  margin-top: 14px;
+}
+.setup-card select,
+.setup-card input[type="text"],
+.setup-card input[type="number"],
+.setup-card textarea {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--bright);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  outline: none;
+}
+.setup-card select:focus,
+.setup-card input:focus,
+.setup-card textarea:focus { border-color: var(--axl-green); }
+
+.setup-card .agents-config {
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.agent-config-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(20,28,40,0.5);
+}
+.setup-card .actions {
+  margin-top: 24px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.setup-card .actions button {
+  padding: 10px 24px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  color: var(--text);
+  background: var(--panel);
+}
+.setup-card .actions button.primary {
+  background: var(--axl-green-dim);
+  border-color: var(--axl-green);
+  color: var(--axl-green);
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-mark"></div>
+      <span class="logo-text">AXL SILO</span>
+      <span class="logo-sub">PARTICLE ACCELERATOR FOR LLMs</span>
+    </div>
+    <div class="status">
+      <div class="state init" id="stateLabel">INIT</div>
+      <span class="mono" style="font-size:11px;color:var(--dim)" id="roundLabel">R0/0</span>
+    </div>
+    <div class="controls">
+      <button onclick="showSetup()">NEW</button>
+      <button onclick="runWorkspace()" id="btnRun">RUN</button>
+      <button onclick="pauseWorkspace()" id="btnPause">PAUSE</button>
+      <button onclick="stopWorkspace()" class="danger" id="btnStop">STOP</button>
+      <button onclick="downloadReport()" id="btnReport" style="border-color:var(--gold);color:var(--gold)">REPORT</button>
+    </div>
+  </div>
+
+  <!-- LEFT: AGENTS -->
+  <div class="panel-left">
+    <h3>AGENTS IN THE RING</h3>
+    <div id="agentsList"></div>
+  </div>
+
+  <!-- CENTER: BUS FEED -->
+  <div class="panel-center">
+    <div class="bus-header">
+      <h2>AXL BUS — LIVE FEED</h2>
+      <div class="stats">
+        <span id="statPackets">0</span> packets
+        &middot;
+        <span id="statChars">0</span> chars
+        &middot;
+        <span id="statProviders">0</span> providers
+      </div>
+    </div>
+    <div class="bus-feed" id="busFeed"></div>
+    <div class="inject-bar">
+      <input type="text" id="injectInput" placeholder="π:OPERATOR|OBS.90|... (inject AXL packet)" class="mono">
+      <button onclick="injectPacket()">INJECT</button>
+    </div>
+  </div>
+
+  <!-- RIGHT: SIGNAL -->
+  <div class="panel-right">
+    <h3>INTELLIGENCE SIGNAL</h3>
+    
+    <div class="signal-card">
+      <div class="label">CONSENSUS</div>
+      <div class="value green" id="sigConsensus">—</div>
+    </div>
+    <div class="signal-card">
+      <div class="label">AGREEMENT</div>
+      <div class="value gold" id="sigAgreement">—</div>
+    </div>
+    <div class="signal-card">
+      <div class="label">BELIEF CHANGES (YLD)</div>
+      <div class="value" id="sigYields" style="color:var(--purple)">0</div>
+    </div>
+
+    <h3 style="margin-top:16px">OPERATIONS</h3>
+    <div class="ops-grid" id="opsGrid"></div>
+
+    <h3 style="margin-top:16px">PROVIDERS IN RING</h3>
+    <div class="providers-list" id="providersList"></div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span>AXL PROTOCOL &middot; 2026 &middot; <a href="https://axlprotocol.org">axlprotocol.org</a></span>
+    <span id="footerTime">ELAPSED: 0s</span>
+  </div>
+
+</div>
+
+<!-- SETUP OVERLAY -->
+<div class="overlay" id="setupOverlay">
+  <div class="setup-card">
+    <h2>INITIALIZE THE RING</h2>
+    <p class="sub">Configure the workspace. Bring your own API keys. The Silo provides the language.</p>
+
+    <label>WORKSPACE NAME</label>
+    <input type="text" id="cfgName" value="Medical Diagnosis">
+
+    <label>SEED</label>
+    <select id="cfgSeed"></select>
+
+    <label>ROUNDS</label>
+    <input type="number" id="cfgRounds" value="12" min="1" max="50">
+
+    <div class="agents-config">
+      <h3 style="font-family:'JetBrains Mono';font-size:10px;letter-spacing:3px;color:var(--dim);margin-bottom:12px">AGENTS — MIX YOUR PROVIDERS</h3>
+      <div id="agentConfigs"></div>
+      <button onclick="addAgentRow()" style="margin-top:8px;font-size:11px;padding:6px 12px;background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:4px;cursor:pointer;font-family:'JetBrains Mono',monospace">+ ADD AGENT</button>
+    </div>
+
+    <div class="actions">
+      <button onclick="hideSetup()">CANCEL</button>
+      <button class="primary" onclick="createWorkspace()">ENGAGE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══ STATE ═══
+let ws = null;
+let lastPacketId = 0;
+const packets = [];
+
+// ═══ WEBSOCKET ═══
+function connectWS() {
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${protocol}//${location.host}/ws`);
+  
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'packet') handlePacket(msg.data);
+    if (msg.type === 'round') handleRound(msg.data);
+    if (msg.type === 'complete') handleComplete(msg.data);
+  };
+  
+  ws.onclose = () => setTimeout(connectWS, 2000);
+}
+
+// ═══ PACKET HANDLING ═══
+function handlePacket(pkt) {
+  packets.push(pkt);
+  lastPacketId = pkt.id;
+  renderPacket(pkt);
+  updateStats();
+}
+
+function renderPacket(pkt) {
+  const feed = document.getElementById('busFeed');
+  const row = document.createElement('div');
+  row.className = 'packet-row';
+  
+  row.innerHTML = `
+    <div class="meta-line">
+      <span class="round-badge">R${pkt.round}</span>
+      <span class="agent-name">${pkt.agent}</span>
+      <span class="op-badge ${pkt.operation}">${pkt.operation}</span>
+      <span class="conf">${Math.round(pkt.confidence * 100)}%</span>
+      <span class="provider-tag">${pkt.provider}</span>
+    </div>
+    <div class="raw-packet">${escapeHtml(pkt.content)}</div>
+    ${pkt.decoded ? `<div class="decoded">${escapeHtml(pkt.decoded)}</div>` : ''}
+  `;
+  
+  feed.appendChild(row);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function handleRound(data) {
+  document.getElementById('roundLabel').textContent = `R${data.round}/${data.status.total_rounds}`;
+  updateStatus(data.status);
+}
+
+function handleComplete(signal) {
+  updateSignal(signal);
+  setStateLabel('COMPLETE');
+}
+
+// ═══ UI UPDATES ═══
+function updateStats() {
+  document.getElementById('statPackets').textContent = packets.length;
+  const chars = packets.reduce((s, p) => s + p.content.length, 0);
+  document.getElementById('statChars').textContent = chars.toLocaleString();
+  const providers = new Set(packets.map(p => p.provider));
+  document.getElementById('statProviders').textContent = providers.size;
+}
+
+function updateStatus(status) {
+  setStateLabel(status.state);
+  document.getElementById('roundLabel').textContent = `R${status.current_round}/${status.total_rounds}`;
+  
+  // Update agents
+  const list = document.getElementById('agentsList');
+  list.innerHTML = '';
+  (status.agents || []).forEach(a => {
+    const card = document.createElement('div');
+    card.className = 'agent-card' + (a.packets_emitted > 0 ? ' active' : '');
+    card.innerHTML = `
+      <div class="name">${a.name}</div>
+      <div class="role">${a.role}</div>
+      <div class="meta">
+        <span class="provider">${a.provider}</span>
+        <span class="packets">${a.packets_emitted} pkts</span>
+        <span class="packets">${a.last_response_time}s</span>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function updateSignal(signal) {
+  if (signal.consensus) {
+    document.getElementById('sigConsensus').textContent = 
+      Math.round(signal.consensus.consensus_score * 100) + '%';
+    document.getElementById('sigAgreement').textContent = 
+      Math.round(signal.consensus.agreement_ratio * 100) + '%';
+    document.getElementById('sigYields').textContent = 
+      signal.consensus.belief_changes || 0;
+  }
+  
+  if (signal.operations) {
+    const grid = document.getElementById('opsGrid');
+    grid.innerHTML = '';
+    const ops = ['OBS','INF','CON','MRG','SEK','YLD','PRD'];
+    ops.forEach(op => {
+      const count = signal.operations[op] || 0;
+      const colors = {OBS:'var(--op-obs)',INF:'var(--op-inf)',CON:'var(--op-con)',MRG:'var(--op-mrg)',SEK:'var(--op-sek)',YLD:'var(--op-yld)',PRD:'var(--op-prd)'};
+      const div = document.createElement('div');
+      div.className = 'ops-grid .op-stat';
+      div.style.cssText = 'background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:6px 8px;text-align:center';
+      div.innerHTML = `<div style="font-family:'JetBrains Mono';font-size:10px;font-weight:700;letter-spacing:1px;color:${colors[op]}">${op}</div><div style="font-family:'JetBrains Mono';font-size:16px;font-weight:700;color:var(--bright)">${count}</div>`;
+      grid.appendChild(div);
+    });
+  }
+}
+
+function setStateLabel(state) {
+  const el = document.getElementById('stateLabel');
+  el.textContent = state;
+  el.className = 'state ' + state.toLowerCase();
+}
+
+// ═══ CONTROLS ═══
+async function runWorkspace() {
+  await fetch('/api/workspace/run', { method: 'POST' });
+  setStateLabel('RUNNING');
+}
+
+async function pauseWorkspace() {
+  await fetch('/api/workspace/pause', { method: 'POST' });
+}
+
+async function stopWorkspace() {
+  const res = await fetch('/api/workspace/stop', { method: 'POST' });
+  const data = await res.json();
+  if (data.signal) updateSignal(data.signal);
+}
+
+async function injectPacket() {
+  const input = document.getElementById('injectInput');
+  if (!input.value) return;
+  await fetch('/api/bus/inject', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: input.value }),
+  });
+  input.value = '';
+}
+
+async function downloadReport() {
+  try {
+    const res = await fetch('/api/report/markdown');
+    if (!res.ok) { alert('No data yet. Run a deliberation first.'); return; }
+    const md = await res.text();
+    
+    // Download as file
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'axl-silo-report.md';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Error generating report: ' + e);
+  }
+}
+
+async function previewReport() {
+  try {
+    const res = await fetch('/api/report/markdown');
+    if (!res.ok) return;
+    const md = await res.text();
+    const win = window.open('', '_blank');
+    win.document.write('<pre style="font-family:monospace;max-width:900px;margin:auto;padding:24px;background:#0a0e14;color:#c8d4e0;white-space:pre-wrap">' + md.replace(/</g,'&lt;') + '</pre>');
+  } catch(e) {}
+}
+
+// ═══ SETUP ═══
+function showSetup() {
+  document.getElementById('setupOverlay').classList.remove('hidden');
+  loadSeeds();
+  if (document.getElementById('agentConfigs').children.length === 0) {
+    // Default agents
+    addAgentRow('Dr.Chen', 'Gynecologic oncologist', 'anthropic/claude-sonnet-4-20250514', 'anthropic');
+    addAgentRow('Dr.Patel', 'Reproductive endocrinologist', 'openai/gpt-4o', 'openai');
+    addAgentRow('Dr.Yamamoto', 'Radiologist', 'google/gemini-2.5-flash', 'google');
+    addAgentRow('NCCN_Guidelines', 'Clinical guidelines', 'ollama/qwen2.5:32b', 'local');
+  }
+}
+
+function hideSetup() {
+  document.getElementById('setupOverlay').classList.add('hidden');
+}
+
+async function loadSeeds() {
+  try {
+    const res = await fetch('/api/seeds');
+    const data = await res.json();
+    const sel = document.getElementById('cfgSeed');
+    sel.innerHTML = '';
+    (data.seeds || []).forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.path;
+      opt.textContent = s.name;
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+function addAgentRow(name='', role='', model='', provider='') {
+  const container = document.getElementById('agentConfigs');
+  const row = document.createElement('div');
+  row.className = 'agent-config-row';
+  row.innerHTML = `
+    <div>
+      <label style="font-size:9px;letter-spacing:1px;color:var(--dim)">NAME</label>
+      <input type="text" value="${name}" class="agent-name-input" placeholder="Dr.Chen">
+    </div>
+    <div>
+      <label style="font-size:9px;letter-spacing:1px;color:var(--dim)">MODEL</label>
+      <input type="text" value="${model}" class="agent-model-input" placeholder="anthropic/claude-sonnet-4">
+    </div>
+    <div>
+      <label style="font-size:9px;letter-spacing:1px;color:var(--dim)">PROVIDER</label>
+      <select class="agent-provider-input">
+        <option value="anthropic" ${provider==='anthropic'?'selected':''}>Anthropic</option>
+        <option value="openai" ${provider==='openai'?'selected':''}>OpenAI</option>
+        <option value="google" ${provider==='google'?'selected':''}>Google</option>
+        <option value="local" ${provider==='local'?'selected':''}>Local (Ollama)</option>
+      </select>
+    </div>
+  `;
+  container.appendChild(row);
+}
+
+async function createWorkspace() {
+  const name = document.getElementById('cfgName').value;
+  const seedPath = document.getElementById('cfgSeed').value;
+  const rounds = parseInt(document.getElementById('cfgRounds').value);
+  
+  // Collect agents
+  const rows = document.querySelectorAll('.agent-config-row');
+  const agents = [];
+  rows.forEach(row => {
+    const n = row.querySelector('.agent-name-input').value;
+    const m = row.querySelector('.agent-model-input').value;
+    const p = row.querySelector('.agent-provider-input').value;
+    if (n && m) {
+      agents.push({ name: n, role: n, model: m, provider: p });
+    }
+  });
+  
+  try {
+    const res = await fetch('/api/workspace/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name, seed_path: seedPath, rounds, agents,
+      }),
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      hideSetup();
+      updateStatus(data.workspace);
+      packets.length = 0;
+      document.getElementById('busFeed').innerHTML = '';
+    } else {
+      alert('Error: ' + (data.message || 'Unknown'));
+    }
+  } catch(e) {
+    alert('Connection error: ' + e);
+  }
+}
+
+// ═══ UTILITIES ═══
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ═══ TIMER ═══
+let startTime = null;
+setInterval(() => {
+  if (startTime) {
+    const elapsed = Math.round((Date.now() - startTime) / 1000);
+    document.getElementById('footerTime').textContent = `ELAPSED: ${elapsed}s`;
+  }
+}, 1000);
+
+// ═══ INIT ═══
+connectWS();
+
+// Check if workspace already exists
+fetch('/api/status').then(r => r.json()).then(data => {
+  if (data.state === 'NO_WORKSPACE') {
+    showSetup();
+  } else {
+    updateStatus(data);
+    // Load existing packets
+    fetch('/api/bus').then(r => r.json()).then(d => {
+      (d.packets || []).forEach(p => {
+        packets.push(p);
+        renderPacket(p);
+      });
+      updateStats();
+    });
+  }
+});
+
+// Enter key on inject input
+document.getElementById('injectInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') injectPacket();
+});
+</script>
+
+</body>
+</html>

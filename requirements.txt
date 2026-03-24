@@ -1,0 +1,4 @@
+flask>=3.0
+flask-sock>=0.7
+litellm>=1.40
+pyyaml>=6.0

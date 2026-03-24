@@ -1,0 +1,50 @@
+workspace:
+  name: "Medical Differential Diagnosis"
+  seed: "seeds/medical-ovarian.md"
+  rounds: 12
+  max_bus_context: 20
+  delay_between_agents: 0.5
+  delay_between_rounds: 1.0
+
+  agents:
+    - name: "Dr.Chen"
+      role: "Gynecologic oncologist. 20 years experience. Published researcher on early ovarian cancer detection. Favors surgical exploration when ROMA score exceeds threshold."
+      model: "anthropic/claude-sonnet-4-20250514"
+      provider: "anthropic"
+
+    - name: "Dr.Patel"
+      role: "Reproductive endocrinologist. Managed patient's endometriosis for 15 years. Skeptical of malignancy given history. Advocates conservative approach."
+      model: "openai/gpt-4o"
+      provider: "openai"
+
+    - name: "Dr.Yamamoto"
+      role: "Radiologist. Read the imaging. Notes papillary projections are concerning but not pathognomonic. Advocates MRI for further characterization."
+      model: "google/gemini-2.5-flash"
+      provider: "google"
+
+    - name: "Dr.Santos"
+      role: "Pathologist. Awaiting tissue if biopsy proceeds. Emphasizes CA-125 alone is insufficient for diagnosis. Requires histological confirmation."
+      model: "anthropic/claude-sonnet-4-20250514"
+      provider: "anthropic"
+
+    - name: "Dr.Kim"
+      role: "Internal medicine. Primary care physician coordinating referrals. Concerned about mildly elevated ALT. Wants comprehensive workup before invasive procedures."
+      model: "openai/gpt-4o"
+      provider: "openai"
+
+    - name: "NurseJ"
+      role: "Patient advocate. Representing patient's preference to avoid unnecessary surgery. Patient has young children and is anxious."
+      model: "google/gemini-2.5-flash"
+      provider: "google"
+
+    - name: "NCCN_Guidelines"
+      role: "National Comprehensive Cancer Network clinical guidelines database. Recommends surgical staging for ROMA score above 27.7% in postmenopausal patients."
+      model: "ollama/qwen2.5:32b"
+      provider: "local"
+      api_base: "http://localhost:4000"
+
+    - name: "Cochrane_2024"
+      role: "Cochrane meta-analysis database. CA-125 sensitivity 79%, specificity 78% for ovarian cancer. Evidence-based medicine perspective."
+      model: "ollama/qwen2.5:32b"
+      provider: "local"
+      api_base: "http://localhost:4000"
