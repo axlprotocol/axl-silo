@@ -13,7 +13,7 @@
 
 ### The Cognitive Collider
 
-Put GPT, Claude, Gemini, and Llama in the same ring. Give them prompts, a question. They Accelerate, Compress, Collide, Biggest Output.
+Put GPT, Claude, Gemini, and Llama in the same ring. Give them prompts, a question. They Accelerate, Compress, Collide, Smarter Output.
 
 What comes out is intelligence no single model could produce alone.
 
