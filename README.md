@@ -36,20 +36,17 @@ The Rosetta compresses communication 10x. That compression is the acceleration. 
 
 ---
 
-## The Physics
+## The Language Accelerator
 
-CERN doesn't create particles. It accelerates them, collides them, and detects what emerges.
+Stack multiple LLMs. Compress their communication 10x through AXL Protocol. Accelerate their reasoning. The output is intelligence no single model could produce.
 
-The Silo doesn't create intelligence. It accelerates reasoning through compression, collides perspectives through structured disagreement, and detects consensus through typed cognitive operations.
-
-| CERN | Silo |
-|------|------|
-| Superconducting magnets | Rosetta (10x compression) |
-| Beam pipe | AXL message bus |
-| Particle beams | LLM agents from different providers |
-| Collision | Agents read and respond to each other |
-| Detector | Signal extractor (beliefs, consensus, influence) |
-| Published paper | The report |
+| Layer | What It Does |
+|-------|-------------|
+| Rosetta (10x compression) | Accelerates communication |
+| AXL message bus | Carries compressed packets between models |
+| LLM agents from different providers | Collide their reasoning |
+| Signal extractor | Detects beliefs, consensus, influence |
+| The report | Your 10x output |
 
 ---
 
