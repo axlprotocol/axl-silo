@@ -1,3 +1,5 @@
+# Copyright 2026 AXLPROTOCOL INC.
+# Licensed under the Apache License, Version 2.0
 """
 AXL Silo — Report Generator
 
@@ -129,7 +131,8 @@ class ReportGenerator:
         # ═══ APPENDIX B: RAW PACKETS ═══
         sections.append(self._section_raw_packets())
 
-        return "\n".join(sections)
+        return "
+".join(sections)
 
     def _section_executive_summary(self) -> str:
         name = self.config.get("name", "this question")
@@ -187,7 +190,8 @@ This deliberation was conducted in the AXL Silo — a contained workspace where 
 """
 
     def _section_participants(self) -> str:
-        lines = ["## Participant Registry\n"]
+        lines = ["## Participant Registry
+"]
         lines.append("| Agent | Role | Model | Provider | Packets | Last Operation |")
         lines.append("|-------|------|-------|----------|---------|----------------|")
 
@@ -204,17 +208,23 @@ This deliberation was conducted in the AXL Silo — a contained workspace where 
                 f"| {agent_name} | {role} | `{model}` | {provider} | {count} | {last_op} ({last_conf:.0%}) |"
             )
 
-        lines.append("\n---\n")
-        return "\n".join(lines)
+        lines.append("
+---
+")
+        return "
+".join(lines)
 
     def _section_transcript(self) -> str:
-        lines = ["## Deliberation Transcript\n"]
+        lines = ["## Deliberation Transcript
+"]
 
         current_round = -1
         for pkt in self.packets:
             if pkt.round != current_round:
                 current_round = pkt.round
-                lines.append(f"\n### Round {current_round}\n")
+                lines.append(f"
+### Round {current_round}
+")
 
             parsed = parse_packet(pkt.content)
             op_label = OP_LABELS.get(pkt.operation, pkt.operation)
@@ -230,18 +240,23 @@ This deliberation was conducted in the AXL Silo — a contained workspace where 
 
             lines.append("")
 
-        lines.append("---\n")
-        return "\n".join(lines)
+        lines.append("---
+")
+        return "
+".join(lines)
 
     def _section_beliefs(self) -> str:
-        lines = ["## Belief Trajectory Analysis\n"]
-        lines.append("The following table shows each agent's cognitive trajectory across rounds — the sequence of operations they performed and how their confidence evolved.\n")
+        lines = ["## Belief Trajectory Analysis
+"]
+        lines.append("The following table shows each agent's cognitive trajectory across rounds — the sequence of operations they performed and how their confidence evolved.
+")
 
         for agent_name, trajectory in self.beliefs.items():
             if not trajectory:
                 continue
 
-            lines.append(f"### {agent_name}\n")
+            lines.append(f"### {agent_name}
+")
             lines.append("| Round | Operation | Confidence | Key Content |")
             lines.append("|-------|-----------|------------|-------------|")
 
@@ -263,10 +278,14 @@ This deliberation was conducted in the AXL Silo — a contained workspace where 
             if changed_mind:
                 summary += f"**Changed mind** during the deliberation. "
             summary += f"Confidence drift: {drift:+.0%} (from {first_conf:.0%} to {last_conf:.0%})."
-            lines.append(f"\n{summary}\n")
+            lines.append(f"
+{summary}
+")
 
-        lines.append("---\n")
-        return "\n".join(lines)
+        lines.append("---
+")
+        return "
+".join(lines)
 
     def _section_consensus(self) -> str:
         score = self.consensus.get("consensus_score", 0)
@@ -293,12 +312,15 @@ A consensus score above 70% with an agreement ratio above 80% indicates strong c
 """
 
     def _section_influence(self) -> str:
-        lines = ["## Influence Chain Analysis\n"]
+        lines = ["## Influence Chain Analysis
+"]
 
         if not self.chains:
-            lines.append("No belief changes (YLD operations) were detected. All agents maintained their initial positions throughout the deliberation.\n")
+            lines.append("No belief changes (YLD operations) were detected. All agents maintained their initial positions throughout the deliberation.
+")
         else:
-            lines.append("The following influence chains trace which agents caused other agents to change their minds. Each chain shows: the yielding agent, the agent or evidence that caused the change, and the round in which it occurred.\n")
+            lines.append("The following influence chains trace which agents caused other agents to change their minds. Each chain shows: the yielding agent, the agent or evidence that caused the change, and the round in which it occurred.
+")
 
             lines.append("| Round | Agent Changed | Caused By | Packet |")
             lines.append("|-------|--------------|-----------|--------|")
@@ -318,15 +340,20 @@ A consensus score above 70% with an agreement ratio above 80% indicates strong c
             if influencers:
                 most_influential = max(influencers, key=influencers.get)
                 lines.append(
-                    f"\nMost influential agent: **{most_influential}** "
+                    f"
+Most influential agent: **{most_influential}** "
                     f"(caused {influencers[most_influential]} belief change(s))."
                 )
 
-        lines.append("\n---\n")
-        return "\n".join(lines)
+        lines.append("
+---
+")
+        return "
+".join(lines)
 
     def _section_operations(self) -> str:
-        lines = ["## Cognitive Operation Distribution\n"]
+        lines = ["## Cognitive Operation Distribution
+"]
         lines.append("| Operation | Verb | Count | Percentage |")
         lines.append("|-----------|------|-------|------------|")
 
@@ -341,7 +368,8 @@ A consensus score above 70% with an agreement ratio above 80% indicates strong c
 
         # Analysis
         dominant = max(self.ops, key=self.ops.get) if self.ops else "N/A"
-        lines.append(f"\nDominant operation: **{dominant}** ({OP_LABELS.get(dominant, dominant)}). ")
+        lines.append(f"
+Dominant operation: **{dominant}** ({OP_LABELS.get(dominant, dominant)}). ")
 
         if self.ops.get("CON", 0) > 0:
             con_ratio = self.ops["CON"] / max(total, 1)
@@ -351,14 +379,20 @@ A consensus score above 70% with an agreement ratio above 80% indicates strong c
             yld_ratio = self.ops["YLD"] / max(total, 1)
             lines.append(f"Belief change rate: {yld_ratio:.1%} of all packets. ")
 
-        lines.append("\n\n---\n")
-        return "\n".join(lines)
+        lines.append("
+
+---
+")
+        return "
+".join(lines)
 
     def _section_predictions(self) -> str:
-        lines = ["## Predictions\n"]
+        lines = ["## Predictions
+"]
 
         if not self.predictions:
-            lines.append("No formal predictions (PRD operations) were issued during the deliberation.\n")
+            lines.append("No formal predictions (PRD operations) were issued during the deliberation.
+")
         else:
             lines.append("| Agent | Confidence | Subject | Evidence | Horizon | Provider |")
             lines.append("|-------|------------|---------|----------|---------|----------|")
@@ -376,7 +410,8 @@ A consensus score above 70% with an agreement ratio above 80% indicates strong c
                 avg = sum(confs) / len(confs)
                 spread = max(confs) - min(confs)
                 lines.append(
-                    f"\nPrediction convergence: average confidence {avg:.1%}, "
+                    f"
+Prediction convergence: average confidence {avg:.1%}, "
                     f"spread {spread:.1%}. "
                 )
                 if spread < 0.2:
@@ -384,8 +419,11 @@ A consensus score above 70% with an agreement ratio above 80% indicates strong c
                 elif spread > 0.4:
                     lines.append("Wide spread indicates significant disagreement on the outcome.")
 
-        lines.append("\n---\n")
-        return "\n".join(lines)
+        lines.append("
+---
+")
+        return "
+".join(lines)
 
     def _section_conclusion(self) -> str:
         name = self.config.get("name", "the question posed")
@@ -433,14 +471,17 @@ All findings in this report are derived from deterministic parsing of AXL cognit
 """
 
     def _section_raw_packets(self) -> str:
-        lines = ["## Appendix B: Raw Packet Log\n"]
-        lines.append("Complete bus transcript in chronological order.\n")
+        lines = ["## Appendix B: Raw Packet Log
+"]
+        lines.append("Complete bus transcript in chronological order.
+")
         lines.append("```")
         for pkt in self.packets:
             lines.append(f"[R{pkt.round:02d}] [{pkt.provider:>10}] {pkt.agent:>20}: {pkt.content}")
         lines.append("```")
         lines.append("")
-        return "\n".join(lines)
+        return "
+".join(lines)
 
     def generate_json(self) -> dict:
         """Export the full report as structured JSON."""

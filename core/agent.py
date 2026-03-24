@@ -1,3 +1,5 @@
+# Copyright 2026 AXLPROTOCOL INC.
+# Licensed under the Apache License, Version 2.0
 """
 AXL Silo — Agent
 
@@ -79,7 +81,9 @@ class Agent:
                 "model": self.config.model,
                 "messages": [
                     {"role": "system", "content": self.system_prompt},
-                    {"role": "user", "content": bus_context + "\n\nYour response (ONE AXL packet, no English):"},
+                    {"role": "user", "content": bus_context + "
+
+Your response (ONE AXL packet, no English):"},
                 ],
                 "temperature": self.config.temperature,
                 "max_tokens": self.config.max_tokens,
@@ -130,7 +134,8 @@ class Agent:
         3. Strip everything after the first newline
         4. Strip any trailing English explanation
         """
-        lines = raw.strip().split("\n")
+        lines = raw.strip().split("
+")
 
         for line in lines:
             line = line.strip()
