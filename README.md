@@ -1,5 +1,17 @@
 # AXL Silo
 
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB.svg?logo=python&logoColor=white)](https://python.org)
+[![AXL Protocol](https://img.shields.io/badge/AXL_Protocol-v2.2-00e87b.svg)](https://axlprotocol.org)
+[![Compression](https://img.shields.io/badge/Compression-10.41x-gold.svg)](https://github.com/axlprotocol/axl-battlegrounds)
+[![Providers](https://img.shields.io/badge/Providers-OpenAI_|_Anthropic_|_Google_|_Ollama-8A2BE2.svg)](https://docs.litellm.ai)
+[![CI](https://img.shields.io/github/actions/workflow/status/axlprotocol/axl-silo/ci.yml?label=CI&logo=github)](https://github.com/axlprotocol/axl-silo/actions)
+[![Experiments](https://img.shields.io/badge/Experiments-8_domains-ff6b35.svg)](https://github.com/axlprotocol/axl-battlegrounds)
+
+<p align="center">
+  <img src="assets/collider.png" alt="AXL Silo - The Cognitive Collider" width="100%">
+</p>
+
 ### The Cognitive Collider
 
 Put GPT, Claude, Gemini, and Llama in the same ring. Give them a question. They collide.
