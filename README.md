@@ -8,7 +8,7 @@
 [![Experiments](https://img.shields.io/badge/Experiments-8_domains-ff6b35.svg)](https://github.com/axlprotocol/axl-battlegrounds)
 
 <p align="center">
-  <img src="assets/collider.png" alt="AXL Silo" width="40%">
+  <img src="assets/collider.png" alt="AXL Silo" width="20%">
 </p>
 
 ### The Cognitive Collider
