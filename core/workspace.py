@@ -9,18 +9,22 @@ It owns the bus, the agents, the round loop, and the signal extraction.
 This is the ring. The contained environment where LLMs collide.
 """
 
+import json
+import os
 import time
 import logging
 import threading
 import yaml
+from datetime import datetime
 from typing import List, Optional, Callable
 from dataclasses import dataclass
 
 from .bus import Bus
 from .agent import Agent, AgentConfig
-from .rosetta import load_rosetta, build_agent_prompt, build_bus_context
+from .rosetta import load_rosetta, build_agent_prompt, build_bus_context, get_round_instruction
 from .codec import parse_packet, decode_packet, extract_operation, extract_confidence
 from .signal import build_signal
+from .queue import QueueServer
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +40,9 @@ class WorkspaceConfig:
     max_bus_context: int = 20       # How many recent packets agents see
     delay_between_agents: float = 0.5  # Seconds between agent calls
     delay_between_rounds: float = 1.0
+    round_strategy: str = "free"    # "free" or "phased" (from rosetta.py ROUND_STRATEGIES)
+    session_dir: str = "sessions"   # Base directory for saved sessions
+    db_path: str = ""               # Optional SQLite path for bus persistence
 
     @classmethod
     def from_yaml(cls, path: str) -> "WorkspaceConfig":
@@ -51,6 +58,9 @@ class WorkspaceConfig:
             max_bus_context=ws.get("max_bus_context", 20),
             delay_between_agents=ws.get("delay_between_agents", 0.5),
             delay_between_rounds=ws.get("delay_between_rounds", 1.0),
+            round_strategy=ws.get("round_strategy", "free"),
+            session_dir=ws.get("session_dir", "sessions"),
+            db_path=ws.get("db_path", ""),
         )
 
 
@@ -83,6 +93,10 @@ class Workspace:
         self._on_packet: Optional[Callable] = None
         self._on_round: Optional[Callable] = None
         self._on_complete: Optional[Callable] = None
+        self._session_dir: str = ""
+        self._queue: Optional[QueueServer] = None
+        self._cost_by_provider: dict = {}
+        self._error_count: int = 0
 
     def on_packet(self, callback: Callable):
         """Set callback for new packets. Receives the Packet object."""
@@ -97,20 +111,57 @@ class Workspace:
         self._on_complete = callback
 
     def load(self):
-        """Load the Rosetta and seed, create agents."""
+        """Load the Rosetta and seed, create agents, initialise session directory and bus."""
         self.state = "LOADING"
 
-        # Load Rosetta
+        # --- Session directory ---
+        ts = datetime.now().strftime("%Y-%m-%d_%H-%M")
+        safe_name = self.config.name.replace(" ", "_").replace("/", "-")
+        session_name = f"{ts}_{safe_name}"
+        self._session_dir = os.path.join(self.config.session_dir, session_name)
+        os.makedirs(self._session_dir, exist_ok=True)
+        logger.info(f"Session directory: {self._session_dir}")
+
+        # --- Determine db_path ---
+        db_path = self.config.db_path or os.path.join(self._session_dir, "bus.db")
+
+        # --- Create Bus with SQLite write-through ---
+        self.bus = Bus(db_path=db_path)
+        logger.info(f"Bus created with db_path={db_path}")
+
+        # --- Save config.json ---
+        config_out = {
+            "name": self.config.name,
+            "seed_path": self.config.seed_path,
+            "rounds": self.config.rounds,
+            "round_strategy": self.config.round_strategy,
+            "session_dir": self.config.session_dir,
+            "db_path": db_path,
+            "max_bus_context": self.config.max_bus_context,
+            "delay_between_agents": self.config.delay_between_agents,
+            "delay_between_rounds": self.config.delay_between_rounds,
+            "agents": self.config.agents or [],
+        }
+        config_path = os.path.join(self._session_dir, "config.json")
+        with open(config_path, "w") as f:
+            json.dump(config_out, f, indent=2)
+        logger.info(f"Config saved: {config_path}")
+
+        # --- Load Rosetta ---
         self.rosetta = load_rosetta(self.config.rosetta_path or None)
         logger.info(f"Rosetta loaded: {len(self.rosetta)} chars")
 
-        # Load seed
+        # --- Load seed ---
         if self.config.seed_path:
             with open(self.config.seed_path, "r") as f:
                 self.seed_text = f.read()
             logger.info(f"Seed loaded: {self.config.seed_path}")
 
-        # Create agents
+        # --- Create QueueServer and register providers ---
+        self._queue = QueueServer()
+        providers_seen: set = set()
+
+        # --- Create agents ---
         for agent_cfg in (self.config.agents or []):
             if isinstance(agent_cfg, dict):
                 ac = AgentConfig(
@@ -126,6 +177,16 @@ class Workspace:
             else:
                 ac = agent_cfg
 
+            # Register provider with queue (once per unique provider name)
+            if ac.provider not in providers_seen:
+                self._queue.register_provider(
+                    name=ac.provider,
+                    api_key=ac.api_key,
+                    api_base=ac.api_base,
+                )
+                providers_seen.add(ac.provider)
+                logger.info(f"Provider registered with queue: {ac.provider}")
+
             # Build the system prompt for this agent
             system_prompt = build_agent_prompt(
                 rosetta=self.rosetta,
@@ -139,7 +200,10 @@ class Workspace:
             logger.info(f"Agent created: {ac.name} ({ac.model} via {ac.provider})")
 
         self.state = "READY"
-        logger.info(f"Workspace ready: {self.config.name} — {len(self.agents)} agents, {self.config.rounds} rounds")
+        logger.info(
+            f"Workspace ready: {self.config.name} — {len(self.agents)} agents, "
+            f"{self.config.rounds} rounds, strategy={self.config.round_strategy}"
+        )
 
     def run(self, blocking: bool = False):
         """Start the round loop. Non-blocking by default (runs in thread)."""
@@ -199,6 +263,14 @@ class Workspace:
         """Extract the current intelligence signal from the bus."""
         return build_signal(self.bus.read(), seed_name=self.config.name)
 
+    def get_session_dir(self) -> str:
+        """Return the session directory path for this workspace."""
+        return self._session_dir
+
+    def get_cost(self) -> dict:
+        """Return per-provider cost breakdown accumulated during the run loop."""
+        return dict(self._cost_by_provider)
+
     def get_status(self) -> dict:
         """Workspace status for the UI."""
         elapsed = 0.0
@@ -215,7 +287,20 @@ class Workspace:
             "elapsed_seconds": elapsed,
             "agents": [a.status() for a in self.agents],
             "bus_stats": self.bus.stats(),
+            "cost_by_provider": self.get_cost(),
+            "session_dir": self._session_dir,
         }
+
+    def _track_cost(self, provider: str):
+        """Pull latest cost totals from the queue and update _cost_by_provider."""
+        if self._queue is None:
+            return
+        try:
+            q_stats = self._queue.stats()
+            for prov, cost in q_stats.get("cost_by_provider", {}).items():
+                self._cost_by_provider[prov] = cost
+        except Exception:
+            pass
 
     def _run_loop(self):
         """The main round loop. Runs in a thread."""
@@ -236,7 +321,17 @@ class Workspace:
 
                 self.current_round = round_num
                 self.bus.round = round_num
-                logger.info(f"═══ Round {round_num}/{self.config.rounds} ═══")
+                logger.info(
+                    f"=== Round {round_num}/{self.config.rounds} "
+                    f"(strategy={self.config.round_strategy}) ==="
+                )
+
+                # Get round instruction for this round/strategy
+                round_instruction = get_round_instruction(round_num, self.config.round_strategy)
+                if round_instruction:
+                    logger.info(f"  Phase instruction: {round_instruction.strip()}")
+
+                round_error_count = 0
 
                 for agent in self.agents:
                     if self._stop:
@@ -247,38 +342,70 @@ class Workspace:
                     if self._stop:
                         break
 
-                    # Build bus context for this agent
+                    # Build bus context for this agent, passing round/strategy
                     recent_packets = self.bus.read(limit=self.config.max_bus_context)
-                    bus_context = build_bus_context(recent_packets, self.config.max_bus_context)
+                    bus_context = build_bus_context(
+                        recent_packets,
+                        self.config.max_bus_context,
+                        round_num=round_num,
+                        strategy=self.config.round_strategy,
+                    )
 
-                    # Call the agent
+                    # Rate-limit via queue before calling agent directly
+                    if self._queue is not None:
+                        try:
+                            self._queue._wait_for_rate_limit(agent.provider)
+                        except Exception as e:
+                            logger.warning(
+                                f"  Rate-limit check failed for {agent.provider}: {e}"
+                            )
+
+                    # Call the agent directly (simple path — queue handles rate limiting above)
                     raw_packet = agent.respond(bus_context)
 
-                    if raw_packet:
-                        # Parse the packet
-                        parsed = parse_packet(raw_packet)
-                        decoded = decode_packet(raw_packet)
+                    if raw_packet is None:
+                        logger.warning(f"  {agent.name}: no valid packet returned (None)")
+                        round_error_count += 1
+                        self._error_count += 1
 
-                        # Post to bus
-                        packet = self.bus.post(
-                            agent=agent.name,
-                            agent_role=agent.role,
-                            content=raw_packet,
-                            operation=parsed["operation"],
-                            confidence=parsed["confidence"],
-                            model=agent.model,
-                            provider=agent.provider,
-                            decoded=decoded,
-                            token_count=len(raw_packet.split()),  # Approximate
-                        )
+                        # Warn if more than 50% of agents failed this round
+                        if round_error_count > max(1, len(self.agents) // 2):
+                            logger.critical(
+                                f"  CRITICAL: {round_error_count}/{len(self.agents)} agents "
+                                f"failed in round {round_num} — more than 50% failure rate"
+                            )
 
-                        logger.info(f"  {agent.name} ({agent.provider}): {raw_packet[:80]}")
+                        # Track cost even on failure, then continue (never crash)
+                        self._track_cost(agent.provider)
+                        if self.config.delay_between_agents > 0:
+                            time.sleep(self.config.delay_between_agents)
+                        continue
 
-                        # Notify listeners
-                        if self._on_packet:
-                            self._on_packet(packet)
-                    else:
-                        logger.warning(f"  {agent.name}: no valid packet returned")
+                    # Parse the packet
+                    parsed = parse_packet(raw_packet)
+                    decoded = decode_packet(raw_packet)
+
+                    # Post to bus
+                    packet = self.bus.post(
+                        agent=agent.name,
+                        agent_role=agent.role,
+                        content=raw_packet,
+                        operation=parsed["operation"],
+                        confidence=parsed["confidence"],
+                        model=agent.model,
+                        provider=agent.provider,
+                        decoded=decoded,
+                        token_count=len(raw_packet.split()),  # Approximate
+                    )
+
+                    logger.info(f"  {agent.name} ({agent.provider}): {raw_packet[:80]}")
+
+                    # Notify listeners
+                    if self._on_packet:
+                        self._on_packet(packet)
+
+                    # Track cost after each successful call
+                    self._track_cost(agent.provider)
 
                     # Delay between agents
                     if self.config.delay_between_agents > 0:
@@ -304,7 +431,41 @@ class Workspace:
         elapsed = round(self.end_time - self.start_time, 1)
         logger.info(f"Workspace complete: {self.bus.count()} packets in {elapsed}s")
 
-        # Signal
-        signal = self.get_signal()
+        # --- Session persistence on completion ---
+        if self._session_dir:
+            try:
+                self.bus.save_session(self._session_dir)
+                logger.info(f"Bus session saved to: {self._session_dir}")
+            except Exception as e:
+                logger.warning(f"Bus save_session failed: {e}")
+
+            # Save signal.json
+            signal = self.get_signal()
+            try:
+                signal_path = os.path.join(self._session_dir, "signal.json")
+                with open(signal_path, "w") as f:
+                    json.dump(signal, f, indent=2)
+                logger.info(f"Signal saved: {signal_path}")
+            except Exception as e:
+                logger.warning(f"Signal save failed: {e}")
+
+            # Save report placeholder
+            try:
+                report_path = os.path.join(self._session_dir, "report.md")
+                with open(report_path, "w") as f:
+                    f.write(f"# {self.config.name}\n\n")
+                    f.write(
+                        "*Report placeholder — run ReportGenerator to populate.*\n\n"
+                    )
+                    f.write(f"- Rounds: {self.config.rounds}\n")
+                    f.write(f"- Strategy: {self.config.round_strategy}\n")
+                    f.write(f"- Packets: {self.bus.count()}\n")
+                    f.write(f"- Elapsed: {elapsed}s\n")
+                    f.write(f"- Session: {self._session_dir}\n")
+            except Exception as e:
+                logger.warning(f"Report placeholder save failed: {e}")
+        else:
+            signal = self.get_signal()
+
         if self._on_complete:
             self._on_complete(signal)
