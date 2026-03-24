@@ -2,13 +2,13 @@
 
 ### The Cognitive Collider
 
-Put GPT, Claude, Gemini, and Llama in the same ring. Give them a question. They collide.
+Put GPT, Claude, Gemini, and Llama in the same ring. Give them prompts, a question. They Accelerate, Compress, Collide, Biggest Output.
 
 What comes out is intelligence no single model could produce alone.
 
 ```
 1. Connect your LLMs
-2. Paste anything
+2. Paste anything, create your seed.
 3. Get 10x more out of it
 ```
 
